@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y \
     ncdu pv git nano htop tmux
 
 # Install Rustup and set up the Rust toolchain
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
 
 # Set the Rust environment variables
 SHELL ["bash", "-c"]
@@ -31,15 +31,27 @@ ENV PATH="/root/.cargo/bin:$PATH"
 RUN rustup component add rustfmt clippy
 # RUN rustup target add x86_64-unknown-linux-gnu
 
-# Install cargo-pgx
-RUN cargo install cargo-pgx
-
 # Create a non-root user
 RUN useradd -ms /bin/bash pguser
+
+# Copy .cargo and .rustup to pguser's home directory
+RUN cp -r /root/.cargo /home/pguser/ && \
+    cp -r /root/.rustup /home/pguser/ && \
+    chown -R pguser:pguser /home/pguser/.cargo /home/pguser/.rustup
+
+# Add cargo path to the pguser's PATH
+RUN echo 'export PATH="/home/pguser/.cargo/bin:$PATH"' >> /home/pguser/.bashrc
+
 USER pguser
 
+# Add cargo path to the pguser's PATH
+ENV PATH="/home/pguser/.cargo/bin:$PATH"
+
+# Install cargo-pgx
+RUN cargo +nightly install cargo-pgx
+
 # Initialize pgx
-RUN cargo pgx init
+RUN cargo +nightly pgx init
 
 # Clone the pg_meritrank repository
 WORKDIR /app
@@ -49,7 +61,7 @@ RUN git clone https://github.com/vsradkevich/pg_meritrank.git
 WORKDIR /app/pg_meritrank
 
 # Build the project
-RUN cargo build
+RUN cargo +nightly build
 
 # Run the tests using cargo-pgx
-RUN cargo pgx test
+RUN cargo +nightly pgx test
