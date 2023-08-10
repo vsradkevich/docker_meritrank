@@ -63,5 +63,13 @@ WORKDIR /app/pg_meritrank
 # Build the project
 RUN cargo +nightly build
 
+# Rename files to remove '.example' suffix
+RUN mv sql/implement_triggers_new.sql.example sql/implement_triggers_new.sql && \
+    mv sql/initial_structure.sql.example sql/initial_structure.sql && \
+    mv .env.example .env
+
+RUN sed -i 's|INITIAL_STRUCTURE_SQL=./sql/initial_structure.sql|INITIAL_STRUCTURE_SQL=/app/pg_meritrank/sql/initial_structure.sql|' .env && \
+    sed -i 's|IMPLEMENT_TRIGGERS_SQL=./sql/implement_triggers_new.sql|IMPLEMENT_TRIGGERS_SQL=/app/pg_meritrank/sql/implement_triggers_new.sql|' .env
+
 # Run the tests using cargo-pgx
 RUN cargo +nightly pgx test
